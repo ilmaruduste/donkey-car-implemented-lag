@@ -1,9 +1,13 @@
 # from .. import donkeycar as local_dk
 # from local_dk.donkeycar.pipeline.types import TubDataset, TubRecord
 # from donkeycar_local.donkeycar.pipeline.types import TubDataset, TubRecord
-from donkeycar.donkeycar.pipeline.types import TubDataset, TubRecord
+
+# from donkeycar_local.donkeycar.pipeline.types import TubDataset, TubRecord
+
+# import donkeycar_local
 
 import donkeycar as dk
+from donkeycar.pipeline.types import TubDataset, TubRecord
 import numpy as np
 import pandas as pd
 import os
@@ -12,7 +16,7 @@ import os
 class DataLoader:
 
     def __init__(self, tub_name):
-        self.tub_path = os.path.join('data', 'tub_name')
+        self.tub_path = os.path.join('data', tub_name)
         self.cfg = dk.load_config(config_path = os.path.join('donkeycar', 'mycar', 'config.py'))
 
     def get_tub_element_path(self, element):

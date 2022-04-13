@@ -1,7 +1,7 @@
 import os
 import argparse
-from src import frame_shifter
-from src import data_loader
+import frame_shifter
+import data_loader
 
 parser = argparse.ArgumentParser()
 parser.add_argument(

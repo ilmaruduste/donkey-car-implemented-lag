@@ -2,7 +2,7 @@ import pandas as pd
 import json
 import os
 import shutil
-from . import data_loader
+import data_loader
 
 class FrameShifter:
 
