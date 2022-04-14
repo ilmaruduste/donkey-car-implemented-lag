@@ -13,6 +13,8 @@ parser.add_argument(
 )
 args = parser.parse_args()
 
+print("Starting frameshifter...")
+
 my_data_loader = data_loader.DataLoader('tub_85_22-03-31')
 my_frame_shifter = frame_shifter.FrameShifter(my_data_loader, int(args.frames_to_shift))
 my_frame_shifter.shift_frames()
