@@ -26,7 +26,7 @@ class DataLoader:
     def get_catalog_df(self, catalog_name):
         catalog_path = self.get_tub_element_path(catalog_name)
         catalog_df = pd.read_json(catalog_path, lines = True)
-        catalog_df['catalog_nr'] = catalog_name.split('.')[0][8:]
+        catalog_df['catalog_nr'] = int(catalog_name.split('.')[0][8:])
         return catalog_df
 
     def get_tub_dataset(self):
