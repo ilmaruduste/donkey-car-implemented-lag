@@ -66,18 +66,17 @@ class FrameShifter:
         metadata_dict['deleted_indexes'] = [index-self.frames_to_shift for index in metadata_dict['deleted_indexes']]
             
         # Add 0 to deleted indexes if it had it before
-        if 0 in metadata_dict['deleted_indexes']:
-            if self.frames_to_shift < 0:
-                for deleted_index in range(self.frames_to_shift):
-                    # Fill the beginning of the deleted index array, if the first frame was deleted in the original
-                    metadata_dict['deleted_indexes'].insert(deleted_index, deleted_index)
+        if self.frames_to_shift < 0:
+            for deleted_index in range(abs(self.frames_to_shift)):
+                # Fill the beginning of the deleted index array, if the first frame was deleted in the original
+                metadata_dict['deleted_indexes'].insert(deleted_index, deleted_index)
+    
+        # Remove the ultimate index(es), as it (or they) might be out of bounds
+        while metadata_dict['deleted_indexes'][-1] >= metadata_dict['current_index']:
+            metadata_dict['deleted_indexes'].pop()
         
-            # Remove the ultimate index(es), as it (or they) might be out of bounds
-            while metadata_dict['deleted_indexes'][-1] >= metadata_dict['current_index']:
-                metadata_dict['deleted_indexes'].pop()
-            
-            if self.frames_to_shift > 0:
-                metadata_dict['deleted_indexes'].pop(0)
+        if self.frames_to_shift > 0:
+            metadata_dict['deleted_indexes'].pop(0)
 
         lines[-1] = str(metadata_dict)
         return lines
@@ -135,7 +134,7 @@ class FrameShifter:
 
             with open(new_catalog_path, 'w') as f:
                 for line in catalog_dict_array:
-                    f.write(str(line) + "\n")
+                    f.write(json.dumps(line) + "\n")
                 print(f"\t\tWrote all lines into {'catalog_' + str(catalog_index) + '.catalog'}!")
         
         print("Catalog files done!")          
