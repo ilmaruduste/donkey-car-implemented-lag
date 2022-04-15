@@ -78,7 +78,7 @@ class FrameShifter:
         if self.frames_to_shift > 0:
             metadata_dict['deleted_indexes'].pop(0)
 
-        lines[-1] = str(metadata_dict)
+        lines[-1] = json.dumps(metadata_dict)
         return lines
 
     def write_manifest(self):
