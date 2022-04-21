@@ -18,6 +18,7 @@ class DataLoader:
     def __init__(self, tub_name):
         self.tub_path = os.path.join('data', tub_name)
         self.cfg = dk.load_config(config_path = os.path.join('donkeycar', 'mycar', 'config.py'))
+        self.catalog_paths = self.get_tub_dataset().tubs[0].manifest.catalog_paths
 
     def get_tub_element_path(self, element):
         return os.path.join(self.tub_path, element)
@@ -25,7 +26,7 @@ class DataLoader:
     def get_catalog_df(self, catalog_name):
         catalog_path = self.get_tub_element_path(catalog_name)
         catalog_df = pd.read_json(catalog_path, lines = True)
-        catalog_df['catalog_nr'] = catalog_name.split('.')[0][8:]
+        catalog_df['catalog_nr'] = int(catalog_name.split('.')[0][8:])
         return catalog_df
 
     def get_tub_dataset(self):
@@ -37,8 +38,7 @@ class DataLoader:
         return dataset
 
     def get_all_catalogs_df(self):
-        catalog_paths = self.get_tub_dataset().tubs[0].manifest.catalog_paths
-        catalog_dfs = [self.get_catalog_df(catalog_name) for catalog_name in catalog_paths]
+        catalog_dfs = [self.get_catalog_df(catalog_name) for catalog_name in self.catalog_paths]
         all_catalogs_df = pd.concat(catalog_dfs)
         return all_catalogs_df
 
