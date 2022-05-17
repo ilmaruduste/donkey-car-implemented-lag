@@ -1,0 +1,338 @@
+---
+title: "results_eda"
+author: "Ilmar Uduste"
+date: "4/20/2022"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(dplyr)
+library(gghighlight)
+```
+
+Let's open the results file.
+
+```{r}
+results <- read.csv("data/frameshift_results.csv", sep = ";")
+results$Approximate.Speed.of.Lap..s. <- round(results$Approximate.Speed.of.Lap..s., 1)
+tub_laps <- read.csv("data/tub_laps.csv", sep = ";")
+train_tubs <- read.csv("data/train_tubs_df.csv", sep = ";")
+train_tubs$deleted_index <- as.integer(train_tubs$deleted_index == "True")
+head(results)
+```
+
+```{r}
+colnames(results)
+```
+```{r}
+
+# results$Frameshift..ms. <- as.numeric(results$Frameshift..ms.)
+# results$Runtime.Framerate..Hz. <- as.numeric(results$Runtime.Framerate..Hz.)
+# results$Artificial.Delay..ms. <- as.numeric(results$Artificial.Delay..ms.)
+# results$Frameshift..ms. <- as.numeric(results$Inference.Time..99..)
+# results$Frameshift..ms. <- as.numeric(results$Frameshift..ms.)
+options(digits = 4)
+sapply(results, as.numeric)
+```
+
+
+```{r}
+results %>% 
+  ggplot(aes(x = Frameshift..ms., y = Approximate.Speed.of.Lap..s., color = Driving.Score)) + 
+  geom_point() + 
+  geom_smooth() +
+  theme_bw() +
+  scale_color_continuous()
+```
+
+```{r}
+results$frameshift_discrete <- as.factor(results$Frameshift..ms.)
+cc <- scales::seq_gradient_pal(low = "#2f4b7c", high = "#ffa600")(seq(0,1,length.out = 7))
+
+results %>% 
+  # ggplot(aes(x = Lag.Delta..ms., y = Approximate.Speed.of.Lap..s., color = frameshift_discrete)) +
+  # ggplot(aes(x = Lag.Delta..ms., y = Approximate.Speed.of.Lap..s., color = factor(Frameshift..ms.))) + 
+  ggplot(aes(x = Lag.Delta..ms., y = Approximate.Speed.of.Lap..s., color = Frameshift..ms.)) +
+  geom_point(size = 3) +
+  # geom_point(aes(size = frameshift_discrete)) +
+  # geom_smooth(color = "#f95d6a", alpha = 0.3) +
+  stat_smooth(geom='smooth', alpha=0.3, se=TRUE, color = "#2f4b7c") +
+  theme_bw() +
+  # scale_fill_brewer(palette = "Spectral", mid = 0) +
+  # scale_colour_manual(values=cc) +
+  # scale_color_gradient(low = "#003f5c", high = "#ffa600") +
+  scale_color_gradient2(low = "#488f31", mid = "#ffe390", high = "#de425b", midpoint = 0) +
+  ylim(0,20) +
+  geom_vline(xintercept = 0, linetype = "dashed", alpha = 0.5) + 
+  geom_hline(yintercept = 0, linetype = "dashed", alpha = 0.5) +
+  geom_hline(yintercept = 7.45, linetype = "dashed", color = "#003f5c", alpha = 0.7) +
+  annotate("text", x = 115, y = 6.5, label = "The fastest lap in the training set by a human was 7.45s", color = "#003f5c", alpha = 0.7, size = 4) +
+  geom_hline(yintercept = 8.3, linetype = "dashed", color = "#ff7c43", alpha = 1) +
+  annotate("text", x = 190, y = 10.3, label = "The average lap in the\ntraining set was 8.33s", color = "#ff7c43", alpha = 1, size = 4)  +
+  labs(x = "Lag Delta (ms)", y = "Average Speed of Fastest Possible Laps (s)", color = "Frameshift (ms)", title = "Performance of frameshifted models in laggy conditions.") +
+  theme(legend.position = c(0.11, 0.75))
+
+
+ggsave("plots/lag_delta_speed.png", width = 6, height = 4)
+```
+
+```{r}
+results %>% 
+  ggplot(aes(x = Average.Inferred.STS.Time..ms., y = Approximate.Speed.of.Lap..s., color = Frameshift..ms.)) + 
+  geom_point() + 
+  geom_smooth() +
+  theme_bw() +
+  scale_color_continuous() +
+  ylim(0,20) 
+```
+
+```{r}
+results %>% 
+  ggplot(aes(x = Approximate.Speed.of.Lap..s., y = Infractions.per.Lap, color = Frameshift..ms.)) + 
+  geom_point() + 
+  geom_smooth() +
+  theme_bw() 
+
+```
+
+```{r}
+results %>% 
+  ggplot(aes(x = Approximate.Speed.of.Lap..s., y = Interventions.per.Lap, color = Frameshift..ms.)) + 
+  geom_point() + 
+  geom_smooth() +
+  theme_bw() 
+```
+
+
+```{r}
+results %>% 
+  ggplot(aes(x = Infractions.per.Lap, y = Interventions.per.Lap, color = Frameshift..ms.)) + 
+  geom_point() + 
+  geom_smooth() +
+  theme_bw() 
+```
+
+
+
+```{r}
+results %>% 
+  ggplot(aes(x = Approximate.Speed.of.Lap..s., y = Driving.Score, color = Frameshift..ms.)) + 
+  geom_point() + 
+  geom_smooth() +
+  theme_bw() 
+```
+
+
+
+
+
+```{r}
+results %>% 
+  ggplot(aes(x = Frameshift..ms., y = Driving.Score, color = Frameshift..ms.)) + 
+  geom_point() + 
+  geom_smooth() +
+  theme_bw() 
+```
+
+
+
+```{r}
+results %>% 
+  ggplot(aes(x = Frameshift..ms., y = Artificial.Delay..ms., fill = Driving.Score)) + 
+  geom_tile() + 
+  theme_bw() 
+```
+
+```{r}
+results %>% 
+  ggplot(aes(x = Frameshift..ms., y = Artificial.Delay..ms., fill = Approximate.Speed.of.Lap..s., label = Approximate.Speed.of.Lap..s.)) + 
+  geom_tile() + 
+  geom_text(color = "white") +
+  xlim(-125, 225) +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(-100, 200, by = 50)) + 
+  scale_y_continuous(breaks = seq(0, 100, by = 25)) + 
+  scale_fill_gradient(low = "#003f5c", high = "#ff6361") +  
+  labs(x = "Frameshift (ms)", y = "Artificial Delay (ms)", fill = "Average Speed of\nFastest Possible\nLaps (s)") +
+  ggtitle("Performance of Frame-shifted Models in different Artificial Delays") +
+  coord_flip() 
+```
+
+
+```{r}
+results %>% 
+  ggplot(aes(x = Frameshift..ms., y = Artificial.Delay..ms., fill = Approximate.Speed.of.Lap..s., label = Approximate.Speed.of.Lap..s.)) + 
+  geom_tile() + 
+  geom_text(color = "white") +
+  xlim(-125, 225) +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(-100, 200, by = 50)) + 
+  scale_y_continuous(breaks = seq(0, 100, by = 25)) + 
+  scale_fill_gradient(low = "#003f5c", high = "#ff6361") +  
+  labs(x = "Frameshift (ms)", y = "Artificial Delay (ms)", fill = "Average Speed of\nFastest Possible\nLaps (s)") +
+  ggtitle("Performance of Frame-shifted Models in different Artificial Delays") +
+  coord_flip() +
+  gghighlight(Approximate.Speed.of.Lap..s. < 10.1)
+```
+
+`
+```{r}
+results %>% 
+  mutate(filtered_speed = ifelse(Approximate.Speed.of.Lap..s. > 10, NA, Approximate.Speed.of.Lap..s.)) %>% 
+  ggplot(aes(x = Frameshift..ms., y = Artificial.Delay..ms., fill = filtered_speed, label = filtered_speed)) + 
+  geom_tile() + 
+  geom_text(color = "white") +
+  xlim(-125, 225) +
+  theme_minimal() +
+  scale_x_continuous(breaks = seq(-100, 200, by = 50)) + 
+  scale_y_continuous(breaks = seq(0, 100, by = 25)) + 
+  scale_fill_gradient(low = "#003f5c", high = "#ff6361") +  
+  labs(x = "Frameshift (ms)", y = "Artificial Delay (ms)", fill = "Average Speed of\nFastest Possible\nLaps (s)") +
+  ggtitle("Performance of Frame-shifted Models in different Artificial Delays") +
+  coord_flip()
+```
+
+```{r}
+results %>% 
+  ggplot(aes(x = Frameshift..ms., y = Artificial.Delay..ms., fill = Driving.Score)) + 
+  geom_tile() + 
+  xlim(-125, 175) +
+  theme_minimal()
+```
+```{r}
+results %>% 
+  ggplot()
+```
+
+
+# Tub Laps
+
+```{r}
+tub_laps$tub_type <- ifelse(tub_laps$Tub %in% c("Train A", "Train B", "Train C"), "Train Tubs", "Test Tubs")
+```
+
+
+```{r}
+colnames(tub_laps)
+```
+
+
+```{r}
+tub_laps %>% 
+  # filter(Tub %in% c("Train A", "Train B", "Train C")) %>%
+  ggplot(aes(x = Time)) + 
+  geom_histogram(binwidth = 0.1, color = "#003f5c", fill = "#ff7c43", alpha = 0.8, aes(y = ..density..)) +
+  # geom_histogram(binwidth = 0.1, alpha = 0.8, color = "black", aes(y = ..density.., fill = Tub)) +
+  theme_bw() +
+  ggtitle("The time of laps in 20hz tubs") +
+  # geom_vline(aes(xintercept=mean(Time)), type = "linedashed", color = "#665191", size = 1.5) +
+  stat_function(fun = dnorm, args = list(mean = mean(tub_laps$Time), sd = sd(tub_laps$Time)), color = "#003f5c", linetype = "dashed")
+  
+```
+```{r}
+tub_laps %>% 
+  filter(Tub %in% c("Train A", "Train B", "Train C")) %>%
+  ggplot(aes(x = Time)) + 
+  geom_histogram(binwidth = 0.1, color = "#003f5c", fill = "#ff7c43", alpha = 0.8, aes(y = ..density..)) +
+  # geom_histogram(binwidth = 0.1, alpha = 0.8, color = "black", aes(y = ..density.., fill = Tub)) +
+  theme_bw() +
+  ggtitle("The time of laps in 20hz training tubs") +
+  geom_vline(aes(xintercept=mean(Time)), type = "linedashed", color = "#665191", size = 1.5) +
+  stat_function(fun = dnorm, args = list(mean = mean(tub_laps$Time), sd = sd(tub_laps$Time)), color = "#003f5c", linetype = "dashed")
+  
+```
+```{r}
+tub_laps %>% 
+  filter(Tub %in% c("Train A", "Train B", "Train C")) %>% 
+  summarize(mean_time = mean(Time), std_time = sd(Time))
+```
+
+
+```{r}
+tub_laps %>% 
+  ggplot(aes(x = Time)) + 
+  geom_histogram(binwidth = 0.1, color = "black", alpha = 0.8) +
+  theme_bw() +
+  ggtitle("The time of laps in tubs")
+```
+```{r}
+
+tub_laps <- tub_laps %>% 
+  # ggplot(aes(x = Time, fill = Tub)) + 
+  mutate(across(tub_type, factor, levels=c("Train Tubs", "Test Tubs")))
+
+tub_text <- data.frame(
+  tub_type = c("Train Tubs", "Test Tubs"),
+  label = c("Mean = 8.33\nSD = 0.41", "Mean = 8.33\nSD = 0.65"),
+  x = c(7.2, 7.2),
+  y = c(0.75, 0.75)
+)
+
+tub_laps %>% 
+  ggplot(aes(x = Time)) + 
+  geom_histogram(binwidth = 0.1, color = "black", fill = "#2f4b7c", alpha = 0.8, aes(y = ..density..)) +
+  theme_bw() +
+  ggtitle("The Times of Laps in Cleaned Tubs") +
+  facet_wrap(~tub_type, nrow = 2, scales = "fixed") +
+  geom_vline(aes(xintercept=8.33), color ="#f95d6a", size = 1, linetype = "dashed")  +
+  geom_vline(data=filter(tub_laps, tub_type=="Train Tubs"), aes(xintercept=8.33-0.41), color ="#ff7c43", size = 1, linetype = "dashed") +
+  geom_vline(data=filter(tub_laps, tub_type=="Train Tubs"), aes(xintercept=8.33+0.41), color ="#ff7c43", size = 1, linetype = "dashed") +
+  geom_vline(data=filter(tub_laps, tub_type=="Test Tubs"), aes(xintercept=8.33-0.65), color ="#ff7c43", size = 1, linetype = "dashed") +
+  geom_vline(data=filter(tub_laps, tub_type=="Test Tubs"), aes(xintercept=8.33+0.65), color ="#ff7c43", size = 1, linetype = "dashed") +
+  scale_x_continuous(breaks = seq(7, 10, by = 0.25)) +
+  # geom_vline(data=filter(tub_laps, tub_type=="Train Tubs"), aes(xintercept=8.33), color ="#ff7c43", size = 1, linetype = "dashed") 
+  geom_text(
+  data  = tub_text, mapping = aes(x = x, y = y, label = label)
+)
+
+ggsave("plots/tub_lap_times.png", width = 6, height = 4)
+```
+```{r}
+tub_laps %>% 
+  filter(tub_type == "Train Tubs") %>% 
+  summarize(mean_time = mean(Time), sd_time = sd(Time))
+```
+```{r}
+tub_laps %>% 
+  filter(tub_type == "Test Tubs") %>% 
+  summarize(mean_time = mean(Time), sd_time = sd(Time))
+```
+
+
+```{r}
+tub_laps %>% 
+  ggplot(aes(x = Tub, fill = Tub, y = Time)) + 
+  geom_violin(color = "black", alpha = 0.8) +
+  geom_boxplot(width = 0.2) + 
+  theme_bw() +
+  ggtitle("The time of laps in tubs")
+```
+
+```{r}
+tub_laps
+```
+
+# Train Tubs histograms
+
+```{r}
+train_tubs %>% 
+  filter(deleted_index == 0) %>% 
+  count()
+```
+
+
+```{r}
+train_tubs %>% 
+  filter(deleted_index == 0) %>% 
+  ggplot(aes(x = user.angle)) +
+  geom_histogram(fill = "#ff7c43", color = "black") +
+  theme_minimal() +
+  labs(x = "Steering Angle", y = "Count of Frames", title = "Cleaned Training Tubs Steering Angle Histogram") +
+  scale_y_continuous(labels = scales::comma_format()) +
+  annotate("text", x = -0.8, y = 3000, label = "Left", color = "#ff7c43", alpha = 1, size = 8)  +
+  annotate("text", x = 0.7, y = 3000, label = "Right", color = "#ff7c43", alpha = 1, size = 8)  +
+  annotate("text", x = 0, y = 24000, label = "Straight", color = "#ff7c43", alpha = 1, size = 7) 
+ggsave(filename = "plots/training_tubs_steering_angle.png", width = 6, height = 4)
+```
+

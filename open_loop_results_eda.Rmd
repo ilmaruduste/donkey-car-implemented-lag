@@ -1,0 +1,257 @@
+---
+title: "open_loop_results_eda"
+author: "Ilmar Uduste"
+date: "5/5/2022"
+output: html_document
+---
+
+```{r}
+library(ggplot2)
+library(plyr)
+library(dplyr)
+library(gghighlight)
+library(tidyr)
+```
+
+```{r}
+df <- read.csv(file = "test_ground_truth_and_predictions.csv", sep = ";")
+df_fixed <- read.csv(file = "test_ground_truth_and_predictions_fixed.csv", sep = ";")
+df$tub_name <- mapvalues(df$tub_name, from = c("tub_89", "tub_168", "tub_175"), to = c("Test A", "Test B", "Test C"))
+df$tub_name <- df$tub_name %>% 
+  factor(levels = c("Test A", "Test B", "Test C"))
+
+df$model_name_short <- mapvalues(df$model, 
+                                 from = c("frameshifted_-2", "frameshifted_-1", "lowres",
+                                          "frameshifted_1", "frameshifted_2", "frameshifted_3", "frameshifted_4"), 
+                                 to = c("FS -2", "FS -1", "FS 0", "FS 1", "FS 2", "FS 3", "FS 4"))
+df$model_name_short <- df$model_name_short %>% 
+  factor(levels = c("FS -2", "FS -1", "FS 0", "FS 1", "FS 2", "FS 3", "FS 4"))
+
+
+df_fixed$tub_name <- mapvalues(df_fixed$tub_name, from = c("tub_89", "tub_168", "tub_175"), to = c("Test A", "Test B", "Test C"))
+df_fixed$tub_name <- df_fixed$tub_name %>% 
+  factor(levels = c("Test A", "Test B", "Test C"))
+
+df_fixed$model_name_short <- mapvalues(df_fixed$model, 
+                                 from = c("frameshifted_-2", "frameshifted_-1", "lowres",
+                                          "frameshifted_1", "frameshifted_2", "frameshifted_3", "frameshifted_4"), 
+                                 to = c("FS -2", "FS -1", "FS 0", "FS 1", "FS 2", "FS 3", "FS 4"))
+df_fixed$model_name_short <- df_fixed$model_name_short %>% 
+  factor(levels = c("FS -2", "FS -1", "FS 0", "FS 1", "FS 2", "FS 3", "FS 4"))
+```
+
+```{r}
+cleaned_lap <- df %>% 
+  filter(deleted_index == "False")
+
+cleaned_lap_fixed <- df_fixed %>% 
+  filter(deleted_index == "False")
+
+```
+
+# Mean absolute difference between frameshifted models in the same frame
+
+# Mean absolute difference across the whole dataset between frameshifted models and original
+
+```{r}
+cleaned_lap$mae <- abs(cleaned_lap$angles - cleaned_lap$user.angle)
+cleaned_lap$mse <- (cleaned_lap$angles - cleaned_lap$user.angle)**2
+cleaned_lap_fixed$mae <- abs(cleaned_lap_fixed$angles - cleaned_lap_fixed$user.angle)
+cleaned_lap_fixed$mse <- (cleaned_lap_fixed$angles - cleaned_lap_fixed$user.angle)**2
+```
+
+```{r}
+cleaned_lap$mae
+```
+
+```{r}
+merge(
+  cleaned_lap %>% 
+    select(angles, frame_indexes, tub, model, user.angle, mae),
+  cleaned_lap_fixed %>% 
+    select(angles, frame_indexes, tub, model, user.angle, mae),
+  by = c("frame_indexes", "tub", "model"),
+  suffixes = c("_orig", "_fixed")
+) %>% 
+  mutate
+```
+
+
+```{r}
+cleaned_lap %>% 
+  ggplot(aes(x = mae)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "darkgray")+
+  geom_vline(xintercept = -1, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 2, linetype = "dashed", color = "gray")+
+  geom_histogram(binwidth = 0.1, aes(y = ..density..), color = "#ff7c43", fill = "#ff7c43") +
+  theme_minimal() +
+  facet_grid(tub_name ~ model_name_short) +
+  labs(x = "Steering Angle", title = "Histogram of the Mean Absolute Error of Steering Angle Predictions from \nFrameshifted Models compared to Ground Truth")
+```
+
+```{r}
+cleaned_lap_fixed %>% 
+  ggplot(aes(x = mae)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "darkgray")+
+  geom_vline(xintercept = -1, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 2, linetype = "dashed", color = "gray")+
+  geom_histogram(binwidth = 0.1, aes(y = ..density..), color = "#ff7c43", fill = "#ff7c43") +
+  theme_minimal() +
+  facet_grid(tub_name ~ model_name_short) +
+  labs(x = "Steering Angle", title = "Histogram of the Mean Absolute Error of Steering Angle Predictions from \nFrameshifted Models compared to Ground Truth")
+```
+
+```{r}
+cleaned_lap %>% 
+  ggplot(aes(x = model_name_short, y = mae)) +
+  geom_violin(fill = "#ffa600") +
+  # geom_violin(aes(fill = model_name_short)) +
+  geom_boxplot(width = 0.1, alpha = 0.9) +
+  theme_minimal() +
+  labs(x = "Frameshifted Model", y = "Mean Absolute Error", title = "Distribution of the Mean Absolute Error of Steering Angle Predictions\nfrom Frameshifted Models compared to Ground Truth")
+
+ggsave("plots/mae_distribution.png", width = 6, height = 4)
+```
+Explain how the mean is not important here, but since every mistake stacks, then the upper bounds (quartiles are important)
+
+```{r}
+
+```
+
+
+# MSE
+```{r}
+cleaned_lap %>% 
+  ggplot(aes(x = model_name_short, y = mse)) +
+  geom_violin(fill = "#ffa600") +
+  # geom_violin(aes(fill = model_name_short)) +
+  geom_boxplot(width = 0.1, alpha = 0.9) +
+  theme_minimal() +
+  labs(x = "Frameshifted Model", y = "Mean Squared Error", title = "Distribution of the Mean Squared Error of Steering Angle Predictions\nfrom Frameshifted Models compared to Ground Truth")
+
+ggsave("plots/mse_distribution.png", width = 6, height = 4)
+```
+# Proportion of MAE that is over 1 for each model
+
+```{r}
+cleaned_lap %>% 
+  ggplot(aes(x = model_name_short, y = mae)) +
+  geom_violin(fill = "#ffa600") +
+  # geom_violin(aes(fill = model_name_short)) +
+  geom_boxplot(width = 0.1, alpha = 0.9) +
+  gghighlight(mae >= 1) +
+  theme_minimal() +
+  labs(x = "Frameshifted Model", y = "Mean Absolute Error", title = "Distribution of the Absolute Error of Steering Angle Predictions\nfrom Frameshifted Models compared to Ground Truth")
+
+```
+
+# Histogram of all models turning angles
+```{r}
+cleaned_lap %>% 
+  ggplot(aes(x = angles)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "darkgray")+
+  geom_vline(xintercept = -1, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray")+
+  geom_histogram(binwidth = 0.1, aes(y = ..density..), color = "#ff6361", fill = "#ff6361") +
+  theme_minimal() +
+  facet_grid(tub_name ~ model_name_short) +
+  scale_x_continuous(breaks = c(-1, 0, 1)) +
+  labs(x = "Steering Angle", title = "Histogram of Steering Angle Predictions from Frameshifted Models on Test Tubs")
+
+
+ggsave("plots/steering_histogram.png", width = 6, height = 4)
+```
+```{r}
+cleaned_lap %>% 
+  ggplot(aes(x = angles)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "darkgray")+
+  geom_vline(xintercept = -1, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray")+
+  geom_histogram(binwidth = 0.1, aes(y = ..density..), color = "#ff6361", fill = "#ff6361") +
+  theme_minimal() +
+  facet_wrap(~ model_name_short, ncol = 7) +
+  scale_x_continuous(breaks = c(-1, 0, 1)) +
+  labs(x = "Steering Angle", title = "Histogram of Steering Angle Predictions from Frameshifted Models\non Test Tubs")
+
+ggsave("plots/test_histogram.png", width = 6, height = 2)
+```
+
+Create a rounded dataset!!!
+Rounded to nearest 0.25
+
+```{r}
+cleaned_lap$angles_rounded_025 <- round(cleaned_lap$angles*4)/4
+cleaned_lap$angles_rounded_050 <- round(cleaned_lap$angles*2)/2
+cleaned_lap$angles_rounded_1 <- round(cleaned_lap$angles)
+
+rounded_cleaned_lap <- cleaned_lap %>% 
+  gather(rounding, angle_value, angles, angles_rounded_025, angles_rounded_050, angles_rounded_1)
+
+rounded_cleaned_lap$rounding <- factor(rounded_cleaned_lap$rounding, 
+                                       levels = c("angles", "angles_rounded_025", 
+                                                  "angles_rounded_050", "angles_rounded_1"),
+                                       labels = c("Original", "Nearest 0.25", "Nearest 0.5", "Nearest 1"))
+
+rounded_cleaned_lap %>%
+  ggplot(aes(x = angle_value)) +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "darkgray")+
+  geom_vline(xintercept = -1, linetype = "dashed", color = "gray")+
+  geom_vline(xintercept = 1, linetype = "dashed", color = "gray")+
+  geom_histogram(aes(y = ..density..), color = "#ff6361", fill = "#ff6361") +
+  theme_minimal() +
+  facet_grid(rounding ~ model_name_short) +
+  scale_x_continuous(breaks = c(-1, 0, 1)) +
+  scale_y_continuous(breaks = c(0, 5, 10)) +
+  labs(x = "Steering Angle", title = "Steering Angle Predictions on Test Tubs from Frameshifted Models")
+
+
+ggsave("plots/rounded_histogram.png", width = 6, height = 4)
+```
+
+```{r}
+as.integer(1.6)
+```
+
+
+```{r}
+cleaned_lap %>% 
+    ggplot(aes(x = user.angle)) +
+  geom_histogram(aes(y = ..density..)) +
+  theme_minimal() +
+  facet_wrap(~ tub) 
+```
+# Timegraph
+
+```{r}
+cleaned_lap %>% 
+  filter(tub_name == "Test A") %>% 
+  filter(frame_indexes > 21072 & frame_indexes < 21752) %>% # Laps 20909, 21072, 21239, 21412, 21583, 21752
+  ggplot(aes(x = frame_indexes, y = user.angle)) +
+  geom_line() +
+  theme_minimal()
+
+```
+Get correct indexes from tub laps excel
+
+```{r}
+cleaned_lap %>% 
+  filter(tub_name == "Test A") %>% 
+  filter(frame_indexes > 21072 & frame_indexes < 21583) %>% # Laps 20909, 21072, 21239, 21412, 21583, 21752
+  ggplot(aes(x = frame_indexes, y = angles, color = model_name_short)) +
+  geom_line(data = cleaned_lap %>% 
+    filter(tub_name == "Test A") %>% 
+    filter(frame_indexes > 21072 & frame_indexes < 21583),
+    aes(x = frame_indexes, y = user.angle), color = "black", alpha =0.9) +
+  geom_line(show.legend = FALSE, size = 1.1, alpha = 0.7) +
+  theme_minimal() +
+  facet_wrap(~model_name_short, nrow = 7, strip.position="right") +
+  labs(x = "Frame Index", y = "Predicted/Ground Truth Steering Angle", color = "Frameshifted Model", title = "Timegraphs: Ground Truth Steering vs Predicted Steering") +
+  scale_y_continuous(breaks = c(-1, 0, 1)) +
+  scale_x_continuous(label = scales::comma)
+
+ggsave("plots/timegraph_steering.png", width = 6, height = 6)
+
+```
+
